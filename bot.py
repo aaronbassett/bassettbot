@@ -2,10 +2,13 @@ import os  # for importing env vars for the bot to use
 from twitchio.ext import commands
 from tinydb import TinyDB
 import spacy
+import arrow
+from git import Repo
 from rich import print
 
 db = TinyDB("../pups/db.json")
 nlp = spacy.load("en_core_web_trf")
+repo = Repo("./")
 
 WORKING_ON_VERBS = ["work", "code", "build", "write", "develop", "program", "create"]
 
@@ -41,6 +44,12 @@ class BassettBot(commands.Bot):
             doc = nlp(message.content)
             verbs = [token.lemma_ for token in doc if token.pos_ == "VERB"]
 
+            print("Noun phrases:", [chunk.text for chunk in doc.noun_chunks])
+            print("Verbs:", [token.lemma_ for token in doc if token.pos_ == "VERB"])
+
+            for entity in doc.ents:
+                print(entity.text, entity.label_)
+
             if len(set(verbs).intersection(WORKING_ON_VERBS)) > 0:
                 await message.channel.send(
                     f"Hey @{message.author.name} we are currently coding me! A Python Twitch chat bot"
@@ -56,12 +65,16 @@ class BassettBot(commands.Bot):
             f"@aaronbassettdev has completed {total_pushups} pushups so far this year"
         )
 
+    @commands.command(name="lastcommit")
+    async def my_command(self, ctx):
+        commit = repo.commit("main")
+        commited_datetime = arrow.get(commit.committed_datetime)
+
+        await ctx.send(
+            f"My last commit was {commited_datetime.humanize()}: '{commit.message}'"
+        )
+
 
 if __name__ == "__main__":
     bot = BassettBot()
     bot.run()
-
-
-# What are you building?
-# WHat are you coding?
-# What is this you're working on today?
